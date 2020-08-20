@@ -1,0 +1,38 @@
+[package]
+name = "enigma-principal-app"
+version = "0.3.0"
+authors = ["Enigma <support@enigma.co>"]
+build = "build.rs"
+
+[dependencies]
+enigma-types = { path = "../../enigma-types", features = ["std"] }
+enigma-crypto = { path = "../../enigma-crypto" }
+enigma-tools-u = { path = "../../enigma-tools-u" }
+enigma-tools-m = { path = "../../enigma-tools-m" }
+
+ethabi = "8.0.1"
+etcommon-rlp = "0.2"
+failure = "0.1.3"
+rustc-hex = "1.0.0"
+serde_json = "1.0"
+serde = "1.0"
+serde_derive = "1.0"
+rmp-serde = "0.13.7"
+structopt = "0.2.10"
+url = "1.7.1"
+colour = "0.3"
+dirs = "1.0"
+web3 = { version  = "0.8", default-features = false, features=["http", "tls"]  }
+jsonrpc-http-server = "11.0.0"
+log = "0.4.6"
+log-derive = "0.3"
+envy = "0.3.2"
+itertools = "0.8.1"
+secp256k1 = "0.12"
+sgx_types = { git = "https://github.com/baidu/rust-sgx-sdk.git", rev = "v1.0.9" }
+sgx_urts = { git = "https://github.com/baidu/rust-sgx-sdk.git", rev = "v1.0.9" }
+
+[dev-dependencies]
+ethereum-types = "0.6"
+jsonrpc-test = "11.0.0"
+tempfile = "3.0"
