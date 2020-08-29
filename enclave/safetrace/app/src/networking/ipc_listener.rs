@@ -28,13 +28,13 @@ impl IpcListener {
     }
 }
 
-pub fn handle_message(request: Multipart, spid: &str, eid: sgx_enclave_id_t, retries: u32) -> Multipart {
+pub fn handle_message(request: Multipart, spid: &str, api_key: &str, eid: sgx_enclave_id_t, retries: u32) -> Multipart {
     let mut responses = Multipart::new();
     for msg in request {
         let msg: IpcMessageRequest = msg.into();
         let id = msg.id.clone();
         let response_msg = match msg.request {
-            IpcRequest::GetEnclaveReport => handling::get_enclave_report(eid, spid, retries),
+            IpcRequest::GetEnclaveReport => handling::get_enclave_report(eid, spid, api_key, retries),
             IpcRequest::NewTaskEncryptionKey { userPubKey } => handling::new_task_encryption_key(&userPubKey, eid),
             IpcRequest::AddPersonalData { input } => handling::add_personal_data(input, eid),
             IpcRequest::FindMatch { input } => handling::find_match(input, eid),
@@ -94,7 +94,7 @@ pub(self) mod handling {
     }
 
     //#[logfn(TRACE)]
-    pub fn get_enclave_report(eid: sgx_enclave_id_t, spid: &str, retries: u32) -> ResponseResult {
+    pub fn get_enclave_report(eid: sgx_enclave_id_t, spid: &str, api_key: &str, retries: u32) -> ResponseResult {
 
         let signing_key = equote::get_register_signing_address(eid)?;
 
@@ -110,7 +110,11 @@ pub(self) mod handling {
             (sig, report)
         } else { // Hardware Mode
             let service: AttestationService = AttestationService::new_with_retries(ATTESTATION_SERVICE_URL, retries);
-            let response = service.get_report(enc_quote)?;
+            // get report via enigma's server
+            // let response = service.get_report(enc_quote)?;
+
+            // get report from Intel's attestation service (IAS)
+            let response = service.get_ias_report(enc_quote, api_key)?;
             let report = response.result.report_string.as_bytes().to_hex();
             let sig = response.result.signature;
             (sig, report)

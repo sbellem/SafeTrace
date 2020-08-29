@@ -5,11 +5,11 @@
 use base64;
 use common_u::errors;
 use failure::Error;
-use hex::FromHex;
+use hex::{FromHex, ToHex};
 use openssl::hash::MessageDigest;
 use openssl::sign::Verifier;
 use openssl::x509::{X509VerifyResult, X509};
-use reqwest::{self, Client};
+use reqwest::{self, Client, header::HeaderMap};
 use rlp;
 use serde_json;
 use serde_json::Value;
@@ -39,6 +39,10 @@ pub struct ASReport {
     pub nonce: Option<String>,
     #[serde(rename = "epidPseudonym")]
     pub epid_pseudonym: Option<String>,
+    #[serde(rename = "advisoryIDs")]
+    pub advisory_ids: Option<Vec<String>>,
+    #[serde(rename = "advisoryURL")]
+    pub advisory_url: Option<String>,
 }
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ASResult {
@@ -66,6 +70,11 @@ pub struct QuoteRequest {
     pub method: String,
     pub params: Params,
     pub id: i32,
+}
+#[derive(Debug, Serialize, Deserialize)]
+pub struct IASRequest {
+    #[serde(rename = "isvEnclaveQuote")]
+    isv_enclave_quote: String,
 }
 
 #[derive(Default)]
@@ -154,6 +163,7 @@ impl AttestationService {
             Err(errors::AttestationServiceErr { message }.into())
         }
     }
+
     // request the report object
     pub fn send_request(&self, quote_req: &QuoteRequest) -> Result<ASResponse, Error> {
         let client = reqwest::Client::new();
@@ -212,6 +222,109 @@ impl AttestationService {
         let jsonrpc = r["jsonrpc"].as_str().unwrap().to_string();
 
         ASResponse { id, jsonrpc, result }
+    }
+
+    /* NOTE: Functions to interact with Intel's Attestation Service (IAS) for SGX.
+     *
+     * As opposed to sending requests to enigma's server, requests are sent to
+     * https://api.trustedservices.intel.com/sgx/dev, and the request payload is
+     * constructed according to the specification found at
+     * https://api.trustedservices.intel.com/documents/sgx-attestation-api-spec.pdf.
+     * The response is also processed according to the specification.
+     */
+    #[logfn(TRACE)]
+    pub fn get_ias_report(&self, quote: String, api_key: &str) -> Result<ASResponse, Error> {
+        let request: IASRequest = IASRequest {
+            isv_enclave_quote: quote,
+        };
+        println!("sending IAS request {:#?}: ", request);
+        let response: ASResponse = self.send_ias_request(&request, api_key)?;
+        Ok(response)
+    }
+
+
+    // request the report object
+    pub fn send_ias_request(&self, quote_req: &IASRequest, api_key: &str) -> Result<ASResponse, Error> {
+        let client = reqwest::Client::new();
+        self.attempt_ias_request(&client, quote_req, api_key).or_else(|mut res_err| {
+            for _ in 0..self.retries {
+                match self.attempt_ias_request(&client, quote_req, api_key) {
+                    Ok(response) => return Ok(response),
+                    Err(e) => res_err = e,
+                }
+            }
+            return Err(res_err)
+        })
+    }
+
+    fn attempt_ias_request(&self, client: &Client, quote_req: &IASRequest, api_key: &str) -> Result<ASResponse, Error> {
+        // TODO pass key from config or env var
+        let mut res = client.post(self.connection_str.as_str())
+            .header("Content-type", "application/json")
+            .header("Ocp-Apim-Subscription-Key", api_key)
+            .json(&quote_req)
+            .send()?;
+
+        // TODO get headers & json
+        let response_str = res.text()?;
+        let json_response: Value = serde_json::from_str(response_str.as_str())?;
+        if res.status().is_success() && !json_response["error"].is_object() {
+            let headers = res.headers();
+            //let report: ASReport = res.json()?;
+            // parse the Json object into an ASResponse struct
+            //let response: ASResponse = self.unwrap_ias_response(&json_response);
+            let response: ASResponse = self.unwrap_ias_response(&headers, &json_response);
+            Ok(response)
+        }
+        else {
+            let message = format!("[-] AttestationService: An Error occurred. \
+                                            Status code: {:?}\nError response: {:?}",
+                                            res.status(), json_response["error"]["message"].as_str());
+            Err(errors::AttestationServiceErr { message }.into())
+        }
+    }
+
+    #[logfn(TRACE)]
+    fn unwrap_ias_result(&self, headers: &HeaderMap, json_response: &Value) -> ASResult {
+        let (ca, certificate) = self.get_signing_certs(headers).unwrap();
+        let signature = self.get_signature(headers).unwrap();
+        let validate = true;    // TODO see whether this is needed, or how it is used
+        let report_string = json_response.to_string();
+        let report: ASReport = serde_json::from_str(&report_string).unwrap();
+        ASResult { ca, certificate, signature, validate, report, report_string }
+    }
+
+    fn unwrap_ias_response(&self, headers: &HeaderMap, r: &Value) -> ASResponse {
+        let result: ASResult = self.unwrap_ias_result(headers, r);
+        let id: i64 = 12345; // dummy id - not sure what this is supposed to be
+        let jsonrpc = String::from("jsonrpc"); // dummy - not sure what this is for
+        ASResponse { id, jsonrpc, result }
+    }
+
+    fn get_signing_certs(&self, headers: &HeaderMap) -> Result<(String, String), Error> {
+        let signing_cert_header = "X-IASReport-Signing-Certificate";
+        let signature_cert = headers.get(signing_cert_header).unwrap().to_str().unwrap();
+        let decoded_cert = percent_encoding::percent_decode_str(signature_cert).decode_utf8().unwrap();
+        //println!("decoded cert: {:#?}", decoded_cert);
+        let certs = X509::stack_from_pem(decoded_cert.as_bytes())?;
+        let cert_obj = &certs[0];
+        let ca_obj = &certs[1];
+        let certificate = String::from_utf8(cert_obj.to_pem().unwrap()).unwrap();
+        let ca = String::from_utf8(ca_obj.to_pem().unwrap()).unwrap();
+        Ok((ca, certificate))
+    }
+
+    fn get_signature(&self, headers: &HeaderMap) -> Result<String, Error> {
+        let signature_header = "X-IASReport-Signature";
+        // NOTE SIGNATURE (in hex)
+        //let message = format!("[-] AttestationService: missing header {:?}", signature_header);
+        let signature_b64 = headers.get(signature_header).unwrap();
+            //.ok_or_else(|| errors::AttestationServiceErr { message }.into())?;
+        //println!("signature: {:#?}", signature_b64);
+        let signature_bytes = base64::decode(signature_b64)?;
+        let signature = signature_bytes.to_hex();
+        //println!("signature base64 decoded in hex fmt: {:#?}", signature);
+        Ok(signature)
     }
 }
 

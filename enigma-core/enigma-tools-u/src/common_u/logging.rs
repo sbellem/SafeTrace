@@ -12,7 +12,8 @@ use failure::Error;
 
 use log::{LevelFilter};
 use log4rs::append::console::{ConsoleAppender, Target};
-use log4rs::append::{file::FileAppender, rolling_file::RollingFileAppender};
+// use log4rs::append::{file::FileAppender, rolling_file::RollingFileAppender};
+use log4rs::append::{rolling_file::RollingFileAppender};
 use log4rs::config::{Appender, Config, Root, Logger};
 use log4rs::encode::pattern::PatternEncoder;
 use log4rs::filter::threshold::ThresholdFilter;
