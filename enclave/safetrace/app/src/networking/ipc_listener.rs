@@ -48,6 +48,7 @@ pub fn handle_message(request: Multipart, spid: &str, api_key: &str, eid: sgx_en
 
 pub(self) mod handling {
     use crate::networking::messages::*;
+    use crate::attestation::{service::AttestationService, constants::ATTESTATION_SERVICE_URL};
     use crate::keys_u;
     use crate::esgx::equote;
     use failure::Error;
@@ -59,7 +60,7 @@ pub(self) mod handling {
     use serde_json::Value;
     use enigma_tools_u::{
         esgx::equote as equote_tools,
-        attestation_service::{service::AttestationService, constants::ATTESTATION_SERVICE_URL},
+        //attestation_service::{service::AttestationService, constants::ATTESTATION_SERVICE_URL},
     };
     use enigma_types::{EnclaveReturn};
 

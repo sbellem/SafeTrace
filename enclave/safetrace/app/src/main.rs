@@ -32,6 +32,8 @@ extern crate rmp_serde;
 extern crate rustc_hex as hex;
 #[macro_use]
 pub extern crate log;
+#[macro_use]
+extern crate log_derive;
 
 use std::env;
 use sgx_types::*;
@@ -42,6 +44,12 @@ pub extern crate enigma_tools_u;
 extern crate enigma_tools_m;
 extern crate enigma_crypto;
 
+extern crate base64;
+extern crate openssl;
+extern crate reqwest;
+extern crate rlp;
+
+pub mod attestation;
 pub mod common_u;
 pub mod keys_u;
 pub mod networking;
