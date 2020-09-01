@@ -59,7 +59,6 @@ pub(self) mod handling {
     use serde::Deserialize;
     use serde_json::Value;
     use enigma_tools_u::esgx::equote as equote_tools;
-    use enigma_types::{EnclaveReturn};
 
 
     extern {
@@ -162,7 +161,7 @@ pub(self) mod handling {
                                          &user_pub_key) };
 
         let result;
-        if(ret == sgx_status_t::SGX_SUCCESS) {
+        if ret == sgx_status_t::SGX_SUCCESS {
             result = IpcResults::AddPersonalData { status: Status::Passed };
         } else {
             result = IpcResults::AddPersonalData { status: Status::Failed };
@@ -180,7 +179,7 @@ pub(self) mod handling {
         let mut user_pub_key = [0u8; 64];
         user_pub_key.clone_from_slice(&input.user_pub_key.from_hex()?);
 
-        let status = unsafe { 
+        let status = unsafe {
             ecall_find_match(
                 eid,
                 &mut ret as *mut sgx_status_t,
@@ -191,11 +190,13 @@ pub(self) mod handling {
             )
         };
 
+        println!("ecall_find_match status: {:#?}", status);
+
         let box_ptr = serialized_ptr as *mut Box<[u8]>;
         let part = unsafe { Box::from_raw(box_ptr) };
 
         let result;
-        if(ret == sgx_status_t::SGX_SUCCESS) {
+        if ret == sgx_status_t::SGX_SUCCESS {
             result = IpcResults::FindMatch { status: Status::Passed, encryptedOutput: part.to_hex()};
         } else {
             result = IpcResults::FindMatch { status: Status::Failed, encryptedOutput: "".to_string() };
