@@ -32,7 +32,10 @@ extern crate rmp_serde;
 extern crate rustc_hex as hex;
 #[macro_use]
 pub extern crate log;
+#[macro_use]
+extern crate log_derive;
 
+use std::env;
 use sgx_types::*;
 use sgx_urts::SgxEnclave;
 
@@ -41,6 +44,11 @@ pub extern crate enigma_tools_u;
 extern crate enigma_tools_m;
 extern crate enigma_crypto;
 
+extern crate base64;
+extern crate openssl;
+extern crate reqwest;
+
+pub mod attestation;
 pub mod common_u;
 pub mod keys_u;
 pub mod networking;
@@ -81,10 +89,14 @@ fn main() {
 
     let server = IpcListener::new(&format!("tcp://*:5552"));
 
-    const SPID: &str = "B0335FD3BC1CCA8F804EB98A6420592D";
+    // NOTE get env var for SPID and Primary Key
+    let spid = env::var("IAS_SGX_SPID")
+        .expect("Environement variable 'IAS_SGX_SPID' is not set! Set it with export IAS_SGX_SPID=...");
+    let api_key = env::var("IAS_SGX_PRIMARY_KEY")
+        .expect("Environement variable 'IAS_SGX_PRIMARY_KEY' is not set! Set it with export IAS_SGX_PRIMARY_KEY=...");
 
     server
-        .run(move |multi| ipc_listener::handle_message(multi, SPID, enclave.geteid(), 1))
+        .run(move |multi| ipc_listener::handle_message(multi, &spid, &api_key, enclave.geteid(), 1))
 
         //.run(move |multi| ipc_listener::handle_message(multi, &opt.spid, eid, opt.retries))
         // .run(|mul| {
