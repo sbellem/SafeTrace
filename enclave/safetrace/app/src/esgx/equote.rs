@@ -29,10 +29,23 @@ pub fn get_register_signing_address(eid: sgx_enclave_id_t) -> Result<[u8; 20], E
 #[cfg(test)]
 mod test {
     use crate::esgx::general::init_enclave_wrapper;
-    use enigma_tools_u::attestation_service::{self, service::AttestationService};
+    use crate::attestation::{self, service::*};
     use enigma_tools_u::esgx::equote::retry_quote;
+    use std::env;
 
-    const SPID: &str = "B0335FD3BC1CCA8F804EB98A6420592D"; // Enigma's SPID
+    fn get_spid() -> String {
+        let spid = env::var("IAS_SGX_SPID")
+            .expect("Environement variable 'IAS_SGX_SPID' is not set! \
+                Set it with export IAS_SGX_SPID=...");
+        spid
+    }
+
+    fn get_api_key() -> String {
+        let api_key: String = env::var("IAS_SGX_PRIMARY_KEY")
+            .expect("Environement variable 'IAS_SGX_PRIMARY_KEY' is not set! \
+                Set it with export IAS_SGX_PRIMARY_KEY=...");
+        api_key
+    }
 
     #[test]
     fn test_produce_quote() {
@@ -40,7 +53,7 @@ mod test {
         let enclave = init_enclave_wrapper().unwrap();
         // produce a quote
 
-        let tested_encoded_quote = match retry_quote(enclave.geteid(), &SPID, 18) {
+        let tested_encoded_quote = match retry_quote(enclave.geteid(), &get_spid(), 18) {
             Ok(encoded_quote) => encoded_quote,
             Err(e) => {
                 println!("[-] Produce quote Err {}, {}", e.as_fail(), e.backtrace());
@@ -59,9 +72,9 @@ mod test {
     #[test]
     fn test_produce_and_verify_qoute() {
         let enclave = init_enclave_wrapper().unwrap();
-        let quote = retry_quote(enclave.geteid(), &SPID, 18).unwrap();
-        let service = AttestationService::new(attestation_service::constants::ATTESTATION_SERVICE_URL);
-        let as_response = service.get_report(quote).unwrap();
+        let quote = retry_quote(enclave.geteid(), &get_spid(), 18).unwrap();
+        let service = AttestationService::new(attestation::constants::ATTESTATION_SERVICE_URL);
+        let as_response = service.get_report(quote, &get_api_key()).unwrap();
 
         assert!(as_response.result.verify_report().unwrap());
     }
@@ -69,9 +82,9 @@ mod test {
     #[test]
     fn test_signing_key_against_quote() {
         let enclave = init_enclave_wrapper().unwrap();
-        let quote = retry_quote(enclave.geteid(), &SPID, 18).unwrap();
-        let service = AttestationService::new(attestation_service::constants::ATTESTATION_SERVICE_URL);
-        let as_response = service.get_report(quote).unwrap();
+        let quote = retry_quote(enclave.geteid(), &get_spid(), 18).unwrap();
+        let service = AttestationService::new(attestation::constants::ATTESTATION_SERVICE_URL);
+        let as_response = service.get_report(quote, &get_api_key()).unwrap();
         assert!(as_response.result.verify_report().unwrap());
         let key = super::get_register_signing_address(enclave.geteid()).unwrap();
         let quote = as_response.get_quote().unwrap();
