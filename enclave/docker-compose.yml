@@ -1,0 +1,32 @@
+version: '3.7'
+
+services:
+  enclave:
+    image: safetrace-enclave
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 5552:5552
+    volumes:
+      - ./safetrace/app/src:/usr/src/enclave/safetrace/app/src
+      - ./safetrace/app/build.rs:/usr/src/enclave/safetrace/app/build.rs
+      - ./safetrace/app/Cargo.toml:/usr/src/enclave/safetrace/app/Cargo.toml
+      - ./safetrace/enclave/src:/usr/src/enclave/safetrace/enclave/src
+      - ./safetrace/enclave/build.rs:/usr/src/enclave/safetrace/enclave/build.rs
+      - ./safetrace/enclave/Cargo.toml:/usr/src/enclave/safetrace/enclave/Cargo.toml
+      - ./safetrace/enclave/Enclave.config.xml:/usr/src/enclave/safetrace/enclave/Enclave.config.xml
+      - ./safetrace/enclave/Enclave.edl:/usr/src/enclave/safetrace/enclave/Enclave.edl
+      - ./safetrace/enclave/Enclave.lds:/usr/src/enclave/safetrace/enclave/Enclave.lds
+      - ./safetrace/enclave/Enclave_private.pem:/usr/src/enclave/safetrace/enclave/Enclave_private.pem
+      - ./safetrace/enclave/Makefile:/usr/src/enclave/safetrace/enclave/Makefile
+      - ./safetrace/enclave/x86_64-unknown-linux-sgx.json:/usr/src/enclave/safetrace/enclave/x86_64-unknown-linux-sgx.json
+      - type: bind
+        source: /var/run/aesmd/aesm.socket
+        target: /var/run/aesmd/aesm.socket
+    devices:
+      - /dev/isgx
+    working_dir: /usr/src/enclave/safetrace/
+    environment:
+      - IAS_SGX_SPID
+      - IAS_SGX_PRIMARY_KEY

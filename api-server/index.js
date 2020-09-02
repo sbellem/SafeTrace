@@ -11,7 +11,8 @@ const bodyParser = require('body-parser');
 
 const app = connect();
 const socket = zmq.socket('req');
-const ENCLAVE_URI = 'tcp://localhost:5552';
+//const ENCLAVE_URI = 'tcp://localhost:5552';
+const ENCLAVE_URI = 'tcp://enclave:5552';
 const _INVALID_PARAM = -32602;
 
 var c = [];

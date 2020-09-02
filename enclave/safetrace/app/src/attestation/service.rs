@@ -166,7 +166,9 @@ impl AttestationService {
 
         if res.status().is_success() {
             let json_response: Value = res.json()?;
+            println!("json response: {:#?}", json_response);
             let headers: &HeaderMap = res.headers();
+            println!("headers: {:#?}", headers);
             let response: ASResponse = self.unwrap_response(&headers, &json_response);
             Ok(response)
         }
@@ -187,8 +189,8 @@ impl AttestationService {
         ASResult { ca, certificate, signature, validate, report, report_string }
     }
 
-    fn unwrap_response(&self, headers: &HeaderMap, r: &Value) -> ASResponse {
-        let result: ASResult = self.unwrap_result(headers, r);
+    fn unwrap_response(&self, headers: &HeaderMap, json_response: &Value) -> ASResponse {
+        let result: ASResult = self.unwrap_result(headers, json_response);
         let id: i64 = 12345; // dummy id - not sure what this is supposed to be
         let jsonrpc = String::from("2.0"); // dummy - not sure what this is for
         ASResponse { id, jsonrpc, result }

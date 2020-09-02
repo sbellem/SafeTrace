@@ -16,6 +16,7 @@ pub struct GetRegisterResult {
 // wrapper function for getting the enclave public sign key (the one attached with produce_quote())
 //#[logfn(TRACE)]
 pub fn get_register_signing_address(eid: sgx_enclave_id_t) -> Result<[u8; 20], Error> {
+    println!("eid: {:?}", eid);
     let mut address = [0u8; 20];
     let status = unsafe { ecall_get_signing_address(eid, &mut address) };
     if status == sgx_status_t::SGX_SUCCESS {

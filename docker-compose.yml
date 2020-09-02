@@ -1,0 +1,33 @@
+version: '3.7'
+
+services:
+  enclave:
+    image: safetrace-enclave
+    build:
+      context: enclave
+      dockerfile: Dockerfile
+    devices:
+      - /dev/isgx
+    volumes:
+      - type: bind
+        source: /var/run/aesmd/aesm.socket
+        target: /var/run/aesmd/aesm.socket
+    working_dir: /usr/src/enclave/safetrace/bin
+    environment:
+      - IAS_SGX_SPID
+      - IAS_SGX_PRIMARY_KEY
+    ports:
+      - 5552:5552
+    command: ./safetrace-app
+
+  api-server:
+    image: safetrace-api-server
+    build:
+      context: api-server
+      dockerfile: Dockerfile
+    volumes:
+      - ./api-server/index.js:/usr/src/app/index.js
+    ports:
+      - "8080:8080"
+    command: "node index.js"
+
