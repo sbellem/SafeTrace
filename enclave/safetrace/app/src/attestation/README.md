@@ -20,6 +20,9 @@ In the shell where unit tests or the `safetrace-app` binary are run,
 the environment variable should be set, e.g.:
 
 ```shell
+# WARNING: these don't work!
+# Sign up to https://api.portal.trustedservices.intel.com/EPID-attestation to get
+# and SPID and API key (aka primary key).
 $ export IAS_SGX_SPID=39M83M77927C59MC038AMA3E26583340
 $ export IAS_SGX_PRIMARY_KEY=c43d3253a9354f1984aee47e55c9bcaf
 ```
