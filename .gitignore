@@ -124,3 +124,5 @@ backend/data/
 
 enigma-types.h
 
+api-server/package-lock.json
+enclave/safetrace/app/keypair.sealed
