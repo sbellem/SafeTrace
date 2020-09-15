@@ -165,11 +165,11 @@ impl AttestationService {
             .send()?;
 
         if res.status().is_success() {
-            let json_response: Value = res.json()?;
-            println!("json response: {:#?}", json_response);
+            let text_response: String = res.text()?;
+            println!("text response: {:#?}", text_response);
             let headers: &HeaderMap = res.headers();
             println!("headers: {:#?}", headers);
-            let response: ASResponse = self.unwrap_response(&headers, &json_response);
+            let response: ASResponse = self.unwrap_response(&headers, &text_response);
             Ok(response)
         }
         else {
@@ -180,17 +180,17 @@ impl AttestationService {
     }
 
     #[logfn(TRACE)]
-    fn unwrap_result(&self, headers: &HeaderMap, json_response: &Value) -> ASResult {
+    fn unwrap_result(&self, headers: &HeaderMap, text_response: &String) -> ASResult {
         let (ca, certificate) = self.get_signing_certs(headers).unwrap();
         let signature = self.get_signature(headers).unwrap();
         let validate = true;    // TODO see whether this is needed, or how it is used
-        let report_string = json_response.to_string();
+        let report_string = text_response.to_string();
         let report: ASReport = serde_json::from_str(&report_string).unwrap();
         ASResult { ca, certificate, signature, validate, report, report_string }
     }
 
-    fn unwrap_response(&self, headers: &HeaderMap, json_response: &Value) -> ASResponse {
-        let result: ASResult = self.unwrap_result(headers, json_response);
+    fn unwrap_response(&self, headers: &HeaderMap, text_response: &String) -> ASResponse {
+        let result: ASResult = self.unwrap_result(headers, text_response);
         let id: i64 = 12345; // dummy id - not sure what this is supposed to be
         let jsonrpc = String::from("2.0"); // dummy - not sure what this is for
         ASResponse { id, jsonrpc, result }
@@ -399,7 +399,7 @@ mod test {
         let encrypted_quote = String::from("AgAAAFsLAAALAAoAAAAAAGSNbR/rEqR4eYf3LM8K2cd8sdcwHQX1eJnLpKpgjG8uCRD//wECAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABwAAAAAAAAAHAAAAAAAAAIlox4uTl6KzEQsrHb0d9FtwycmY7eKPyJgUNhOSTM0MAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACD1xnnferKFHD2uvYqTXdDA8iZ22kCD5xw7h38CMfOngAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADmCQibI7Rr/gg54tJ49aVH0fFhyQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAqAIAAJzTIYbi2wIitvQEZ0uQ1i6IAl3wrSvjXCUwxHDSLaRaYRB3JwQil8huhGwkx2NB30WgdjMnPtVkGI/6LSgJOLoWpR9fiAuhNYNmm6NQVBD+VXG4vwrhRuKD9nqonSg5+v/aAWgMLdjVieG+erXlySXTahf0EaSmWtB6PwN+Ks0meM9TGvBsJp1QSSb8/sRwC6/380MNd5cfRmhV+OzswFI6qcR/7XYcsefwzfTHQnG4KFr0SfYaT0ZL4s4mYQosWflAQi1o1DI46EjhR87prnKbElA5BJbpMRHaEdcbCf/BZKINkB3/Mhpb9+B/k2/TEmDC8MlzqKWyq+tuD/uqdmzWLr25ra5aMvXt2BHNQd76K6BbRy1xDGlmgUgW6+zGkX7HOaOmKL23rOBuE2gBAAB/f7hJDJb/p/Uzd/XeoLNI5KxkFYYq1FcYEMRwYJTc9JpS9hBMDjVeARpBGuj3MKjEpQXdepLX1YCjBW0x9xwFYPG4e5ZNAWzxyRMLiaOxA7RBNmt3flypUfmWKaS1zTSzNZhxZbJeQw7En0LudaIbBGB0nbWo0Y6usNW2rXSTEh3DZZGdxGoQoUk2LagQcPwesWl5WuIBqESsYgDErubwBUq/XZ9Nrpepf5Hg7xbnLtYJMrF+FBFLg5FU/19cAY5ZokeYwIRheULn8w4q6E9ownlIrXZyV/o5ykAm2GC1a900MzpGOyc7Cb6ujNo+YQajO1RsipB/ahr8DaSBmL2ao01+tRW3izlH67Kx82CdeM3+f7KObK0AjF5lW8mOEf0kpeyiCgHkDMkzWToPUg3S6sgzAefI5PpmG9VzBwJ+7R3kCIumO0VklaVeuD2GwKwfEMlDbEjF7P95AgCaPoqNLG0dxTl4ee10z9OBFdtv4QVFSL2vpcWK");
         let response = service.get_report(encrypted_quote, &get_api_key()).unwrap();
         let quote = response.get_quote().unwrap();
-        let address = "fdb14b52d7f567e65be4dccc61f9e5f400e8dda0".from_hex().unwrap();
+        let address = "e609089b23b46bfe0839e2d278f5a547d1f161c9".from_hex().unwrap();
         assert_eq!(&quote.report_body.report_data[..20], &address[..]);
         assert!(response.result.verify_report().unwrap());
     }
