@@ -1,4 +1,30 @@
 # Working with docker
+Before starting, the following two environment variables, used for the remote
+attestation, must be set:
+
+* `IAS_SGX_SPID` (Service Provider ID)
+* `IAS_SGX_PRIMARY_KEY` (aka subscription & API key)
+
+The SPID and API key can be obtained by signing up on the
+[Development (DEV) attestation service portal][dev-ias-portal].
+
+In the shell where `docker-compose` will be run,
+the environment variable should be set, e.g.:
+
+```shell
+$ export IAS_SGX_SPID=<your_spid>
+$ export IAS_SGX_PRIMARY_KEY=<your_primary_key>
+```
+
+**IMPORTANT: KEEP the API key secret**
+
+> Subscription Key is a credential to access the API. It is known only to the
+  owner (i.e. Service Provider) and it is the responsibility of the owner to
+  protect its confidentiality. API portal allows for an on-demand rotation of
+  the keys to support custom key rotation policies.
+
+
+# Running safetrace with docker-compose
 The enclave app and nodejs API server can be run using `docker-compose`,
 from the root of the repository:
 

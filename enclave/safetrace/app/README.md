@@ -31,3 +31,5 @@ $ export IAS_SGX_PRIMARY_KEY=c43d3253a9354f1984aee47e55c9bcaf
 
 For more details see
 [./src/attestation/README.md](./src/attestation/README.md).
+
+[dev-ias-portal]: https://api.portal.trustedservices.intel.com/EPID-attestation
