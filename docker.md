@@ -199,3 +199,5 @@ A docker image for Safetrace requires, roughly speaking, three layers:
 3. Safetrace code
 
 The first layer, Linux SGX, is the base image used by the Safetrace Dockerfile under [enclave/](./enclave).
+
+[dev-ias-portal]: https://api.portal.trustedservices.intel.com/EPID-attestation
